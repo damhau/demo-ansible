@@ -1,5 +1,5 @@
 - name: Deploy demo app
-  hosts: all
+  hosts: redbox
   gather_facts: true
   vars:
     app_name: demo

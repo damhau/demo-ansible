@@ -1,5 +1,5 @@
 - name: Create a file in /tmp
-  hosts: test
+  hosts: redbox
   gather_facts: true
 
   tasks:
