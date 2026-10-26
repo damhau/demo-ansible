@@ -1,6 +1,6 @@
 - name: Create a file in /tmp
   hosts: test
-  gather_facts: trie
+  gather_facts: true
 
   tasks:
     - name: Write test file
