@@ -1,0 +1,9 @@
+- name: Create a file in /tmp
+  hosts: test
+  gather_facts: trie
+
+  tasks:
+    - name: Write test file
+      ansible.builtin.copy:
+        dest: /tmp/hello.txt
+        content: "Hello from Ansible\n"
