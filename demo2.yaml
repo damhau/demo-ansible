@@ -1,0 +1,67 @@
+- name: Deploy demo app
+  hosts: all
+  gather_facts: true
+  vars:
+    app_name: demo
+    app_version: "1.0.0"
+    app_root: "/tmp/awxnext-demo/{{ inventory_hostname }}/{{ app_name }}"
+    fail_on: []
+
+  tasks:
+    - name: Show where we are
+      ansible.builtin.debug:
+        msg: "{{ ansible_facts.hostname }}: {{ ansible_facts.distribution }} {{ ansible_facts.distribution_version }}, {{ ansible_facts.memtotal_mb }} MB RAM"
+      tags: [info]
+
+    - name: Create the app directory
+      ansible.builtin.file:
+        path: "{{ app_root }}"
+        state: directory
+        mode: "0755"
+
+    - name: Render the config
+      ansible.builtin.template:
+        src: app.conf.j2
+        dest: "{{ app_root }}/app.conf"
+        mode: "0644"
+      notify: Restart app
+
+    - name: Create data files
+      ansible.builtin.copy:
+        dest: "{{ app_root }}/{{ item }}.txt"
+        content: "{{ item }} for {{ app_name }} {{ app_version }}\n"
+        mode: "0644"
+      loop: [users, orders, invoices]
+
+    - name: Read disk usage
+      ansible.builtin.command: du -sh {{ app_root }}
+      register: usage
+      changed_when: false
+
+    - name: Report disk usage
+      ansible.builtin.debug:
+        msg: "{{ usage.stdout }}"
+
+    - name: Windows only step
+      ansible.builtin.debug:
+        msg: never shown here
+      when: ansible_facts.os_family == "Windows"
+
+    - name: Health check
+      ansible.builtin.assert:
+        that: inventory_hostname not in fail_on
+        fail_msg: "{{ inventory_hostname }} did not come up (it is in fail_on)"
+        success_msg: "{{ inventory_hostname }} is healthy"
+      tags: [check]
+
+    - name: Publish the deployed version
+      ansible.builtin.set_stats:
+        data:
+          deployed_version: "{{ app_version }}"
+        per_host: false
+      run_once: true
+
+  handlers:
+    - name: Restart app
+      ansible.builtin.debug:
+        msg: "Restarting {{ app_name }} on {{ inventory_hostname }}"
