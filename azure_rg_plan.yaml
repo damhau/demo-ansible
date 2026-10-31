@@ -1,0 +1,31 @@
+---
+# Step 1 of the "Azure demo resource groups" workflow: decides which resource
+# groups to create, and publishes them with set_stats. awxnext passes them to
+# the next steps as variables, and the "create" node loops over
+# resource_groups, one azure.yaml job per name.
+#
+# Override with extra variables: prefix, rg_count, location.
+- name: Plan the demo resource groups
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    prefix: rg-awxnext-demo
+    rg_count: 3
+    location: switzerlandnorth
+
+  tasks:
+    - name: Name them
+      ansible.builtin.set_fact:
+        resource_groups: "{{ query('ansible.builtin.sequence', 'start=1 end=' ~ rg_count ~ ' format=' ~ prefix ~ '-%d') }}"
+
+    - name: Publish them for the next steps
+      ansible.builtin.set_stats:
+        data:
+          resource_groups: "{{ resource_groups }}"
+          location: "{{ location }}"
+        per_host: false
+
+    - name: Show the plan
+      ansible.builtin.debug:
+        msg: "{{ resource_groups | join(', ') }} in {{ location }}"

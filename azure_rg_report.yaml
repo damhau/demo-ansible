@@ -1,0 +1,30 @@
+---
+# Step 3 of the "Azure demo resource groups" workflow: reads back from Azure
+# each resource group the plan published (resource_groups), and fails if one
+# is missing.
+- name: Report on the demo resource groups
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  tasks:
+    - name: Read each resource group
+      azure.azcollection.azure_rm_resourcegroup_info:
+        name: "{{ item }}"
+      loop: "{{ resource_groups }}"
+      register: info
+
+    - name: Show each resource group
+      ansible.builtin.debug:
+        msg: "{{ item.resourcegroups[0].id }} in {{ item.resourcegroups[0].location }}, tags {{ item.resourcegroups[0].tags }}"
+      loop: "{{ info.results | selectattr('resourcegroups') | list }}"
+      loop_control:
+        label: "{{ item.item }}"
+
+    - name: Check that they all exist
+      ansible.builtin.assert:
+        that: missing | length == 0
+        fail_msg: "Missing: {{ missing | join(', ') }}"
+        success_msg: "All {{ resource_groups | length }} resource groups exist"
+      vars:
+        missing: "{{ info.results | rejectattr('resourcegroups') | map(attribute='item') | list }}"
