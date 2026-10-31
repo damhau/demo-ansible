@@ -1,1 +1,33 @@
 ---
+# Creates an Azure resource group, with the job template's Microsoft Azure
+# Resource Manager credential (awxnext-deployer): awxnext injects
+# AZURE_SUBSCRIPTION_ID, AZURE_CLIENT_ID, AZURE_SECRET and AZURE_TENANT, which
+# the azure.azcollection modules read.
+#
+# Runs on localhost: in a container group, the execution environment's pod
+# (quay.io/ansible/awx-ee has azure.azcollection and the Azure SDK).
+#
+# Override the name and region with extra variables:
+#   resource_group: rg-something
+#   location: westeurope
+- name: Create an Azure resource group
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    resource_group: rg-awxnext-demo
+    location: switzerlandnorth
+
+  tasks:
+    - name: Create the resource group
+      azure.azcollection.azure_rm_resourcegroup:
+        name: "{{ resource_group }}"
+        location: "{{ location }}"
+        tags:
+          managed_by: awxnext
+          source: demo-ansible
+      register: rg
+
+    - name: Show the resource group
+      ansible.builtin.debug:
+        msg: "{{ rg.state.id }} in {{ rg.state.location }}: {{ 'created' if rg.changed else 'already there' }}"
